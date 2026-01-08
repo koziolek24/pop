@@ -1,12 +1,12 @@
-use std::{collections::VecDeque, io::stdin, str::FromStr};
-
 use rand::{
     Rng,
-    distr::Uniform,
-    random_range,
     seq::{IndexedRandom, SliceRandom},
 };
-use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator, ParallelIterator,
+};
+use std::{collections::VecDeque, io::stdin};
+use std::{time::Instant, usize};
 
 #[derive(Clone, Debug)]
 struct Solution {
@@ -214,7 +214,7 @@ impl Problem {
 }
 
 struct Config {
-    generation_count: usize,
+    patience: usize,
     population_size: usize,
     mutation_chance: f64,
     sample_size: usize,
@@ -226,8 +226,10 @@ fn evolution(problem: &Problem, config: Config) -> Solution {
         .collect::<Vec<_>>();
 
     let mut rng = rand::rng();
+    let mut best = usize::MAX;
+    let mut patience_remaining = config.patience;
 
-    for generation in 0..config.generation_count {
+    while patience_remaining > 0 {
         // println!("Generation: {generation}");
         // println!(
         //     "Best score: {}",
@@ -252,6 +254,17 @@ fn evolution(problem: &Problem, config: Config) -> Solution {
                 .unwrap()
                 .mutate(&problem, config.mutation_chance);
             population.push(new);
+        }
+        let current_best = population
+            .par_iter()
+            .map(|s| s.score(problem))
+            .min()
+            .unwrap();
+        if current_best < best {
+            best = current_best;
+            patience_remaining = config.patience;
+        } else {
+            patience_remaining -= 1;
         }
     }
 
@@ -295,12 +308,12 @@ fn main() -> Result<(), String> {
     // println!("matrix[0] = {:?}", matrix[0]);
 
     let cfg = Config {
-        generation_count: 1000,
+        patience: 30,
         population_size: 100,
-        mutation_chance: 1.0,
-        sample_size: 10,
+        mutation_chance: 0.7,
+        sample_size: 3,
     };
-
+    let start = Instant::now();
     let p = Problem::new(group_count, task_count, matrix, task_times).unwrap();
 
     // let s = Solution::new_random(&p);
@@ -310,8 +323,8 @@ fn main() -> Result<(), String> {
     // return Ok(());
 
     let best = evolution(&p, cfg);
-
+    let duration = start.elapsed();
     println!("{}", best.score(&p));
-
+    println!("{:.6}", duration.as_secs_f64());
     Ok(())
 }
