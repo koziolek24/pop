@@ -1,9 +1,12 @@
-use std::{collections::VecDeque, io::stdin, str::FromStr};
+use std::{
+    collections::VecDeque,
+    env,
+    io::stdin,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use rand::{
-    Rng,
-    distr::Uniform,
-    random_range,
+    Rng, SeedableRng,
     seq::{IndexedRandom, SliceRandom},
 };
 use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
@@ -12,6 +15,22 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterato
 struct Solution {
     working_groups: Vec<usize>,
     tasks: Vec<usize>,
+}
+
+fn get_rng() -> impl Rng {
+    rand_chacha::ChaCha20Rng::seed_from_u64(
+        env::args()
+            .nth(1)
+            .as_deref()
+            .map(str::parse)
+            .map(Result::unwrap)
+            .unwrap_or(
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs(),
+            ),
+    )
 }
 
 impl Solution {
@@ -85,9 +104,7 @@ impl Solution {
         }
     }
 
-    fn new_random(context: &Problem) -> Self {
-        let mut rng = rand::rng();
-
+    fn new_random(context: &Problem, rng: &mut impl Rng) -> Self {
         let mut tasks_countdowns = context
             .tasks
             .iter()
@@ -134,9 +151,8 @@ impl Solution {
         }
     }
 
-    fn mutate(&self, context: &Problem, mutation_chance: f64) -> Self {
+    fn mutate(&self, context: &Problem, rng: &mut impl Rng, mutation_chance: f64) -> Self {
         let mut mutated = self.clone();
-        let mut rng = rand::rng();
 
         if rng.random_bool(mutation_chance) {
             if rng.random_bool(0.50) {
@@ -221,13 +237,13 @@ struct Config {
 }
 
 fn evolution(problem: &Problem, config: Config) -> Solution {
-    let mut population = std::iter::repeat_with(|| Solution::new_random(&problem))
+    let mut rng = get_rng();
+
+    let mut population = std::iter::repeat_with(|| Solution::new_random(&problem, &mut rng))
         .take(config.population_size)
         .collect::<Vec<_>>();
 
-    let mut rng = rand::rng();
-
-    for generation in 0..config.generation_count {
+    for _generation in 0..config.generation_count {
         // println!("Generation: {generation}");
         // println!(
         //     "Best score: {}",
@@ -247,10 +263,11 @@ fn evolution(problem: &Problem, config: Config) -> Solution {
             .collect::<Vec<_>>();
 
         while population.len() != config.population_size {
-            let new = population
-                .choose(&mut rng)
-                .unwrap()
-                .mutate(&problem, config.mutation_chance);
+            let new = population.choose(&mut rng).unwrap().mutate(
+                &problem,
+                &mut rng,
+                config.mutation_chance,
+            );
             population.push(new);
         }
     }

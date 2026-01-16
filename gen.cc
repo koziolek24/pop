@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <numeric>
 #include <random>
@@ -10,19 +12,21 @@ int main(int argc, char *argv[]) {
   int maxTaskCount = 10;
   int maxGroupCount = 3;
   int maxTime = 10;
+  uint64_t seed = std::chrono::high_resolution_clock::now().time_since_epoch().count();
   if (argc > 1) {
     maxTaskCount = std::stoi(argv[1]);
     if (argc >= 3)
       maxGroupCount = std::stoi(argv[2]);
     if (argc >= 4)
       maxTime = std::stoi(argv[3]);
+    if (argc >= 5)
+      seed = std::stoi(argv[4]);
   }
-  std::random_device rd;
-  std::mt19937 gen(rd());
+  std::mt19937 gen(seed);
   std::uniform_real_distribution<> prob_dist(0.0, 1.0);
-  std::uniform_int_distribution<> taskDist(1, maxTaskCount);
-  std::uniform_int_distribution<> groupDist(1, maxGroupCount);
-  std::uniform_int_distribution<> timeDist(1, maxTime);
+  std::uniform_int_distribution<> taskDist(maxTaskCount / 2, maxTaskCount);
+  std::uniform_int_distribution<> groupDist(maxGroupCount / 2, maxGroupCount);
+  std::uniform_int_distribution<> timeDist(maxTime / 2, maxTime);
 
   int taskCount = taskDist(gen);
   int groupCount = groupDist(gen);
