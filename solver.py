@@ -2,11 +2,12 @@ import sys
 import time
 from ortools.sat.python import cp_model
 
+
 def solve_schedule():
     input_data = sys.stdin.read().split()
     if not input_data:
         return
-    
+
     iterator = iter(input_data)
     try:
         n = int(next(iterator))
@@ -46,25 +47,29 @@ def solve_schedule():
     model.Minimize(makespan)
 
     solver = cp_model.CpSolver()
-    
+    solver.parameters.max_time_in_seconds = 30.0
+
     start_time = time.perf_counter()
     status = solver.Solve(model)
     end_time = time.perf_counter()
-    
+
     calculation_time = end_time - start_time
 
     print(f"{calculation_time:.6f}")
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
         print(int(solver.ObjectiveValue()))
-        
+
         tasks_ordered = sorted(range(n), key=lambda k: solver.Value(starts[k]))
         for i in tasks_ordered:
             st = solver.Value(starts[i])
             en = solver.Value(ends[i])
             print(f"Zadanie {i+1} (czas: {durations[i]}): [{st}, {en}]")
+    elif status == cp_model.FEASIBLE:
+        print(solver.BestObjectiveBound())
     else:
         print("BRAK_ROZWIAZANIA")
+
 
 if __name__ == '__main__':
     solve_schedule()
