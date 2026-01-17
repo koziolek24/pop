@@ -11,6 +11,8 @@ cargo build --release --quiet
 
 mkdir -p out
 
+seed=$1
+
 for input_file in $(ls in/in*.txt | sort -V); do
     filename=$(basename -- "$input_file")
     number="${filename//[^0-9]/}"
@@ -19,8 +21,12 @@ for input_file in $(ls in/in*.txt | sort -V); do
     rust_time_file="out/timeR${number}.txt" # Where we save Rust time
     py_time_file="out/time${number}.txt"    # Python time file
     
-    full_output=$(./target/release/pop < "$input_file" 2> /dev/null)
-    
+    if [ "$#" -ge 1 ]; then
+        full_output=$(./target/release/pop "$1" < "$input_file" 2> /dev/null)
+    else
+        full_output=$(./target/release/pop < "$input_file" 2> /dev/null)
+    fi
+
     actual_score=$(echo "$full_output" | sed -n '1p')
     rust_time_raw=$(echo "$full_output" | sed -n '2p')
 

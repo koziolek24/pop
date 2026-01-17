@@ -232,8 +232,30 @@ impl Problem {
     }
 }
 
+#[derive(Clone, Copy)]
+enum EndCondition {
+    Patience(u64),
+    GenerationCount(u64),
+}
+
+impl EndCondition {
+    fn should_end(&self) -> bool {
+        match *self {
+            Self::Patience(x) => x == 0,
+            Self::GenerationCount(x) => x == 0,
+        }
+    }
+
+    fn value(&self) -> u64 {
+        match *self {
+            EndCondition::Patience(x) => x,
+            EndCondition::GenerationCount(x) => x,
+        }
+    }
+}
+
 struct Config {
-    patience: usize,
+    end: EndCondition,
     population_size: usize,
     mutation_chance: f64,
     sample_size: usize,
@@ -247,10 +269,10 @@ fn evolution(problem: &Problem, config: Config) -> Solution {
         .collect::<Vec<_>>();
 
     let mut best = usize::MAX;
-    let mut patience_remaining = config.patience;
+    let mut limit = config.end;
 
-    while patience_remaining > 0 {
-        // println!("Generation: {generation}");
+    while !limit.should_end() {
+        // println!("Generation: {}", limit.value());
         // println!(
         //     "Best score: {}",
         //     population.iter().map(|s| s.score(&problem)).min().unwrap()
@@ -281,11 +303,15 @@ fn evolution(problem: &Problem, config: Config) -> Solution {
             .map(|s| s.score(problem))
             .min()
             .unwrap();
+
+        match &mut limit {
+            EndCondition::Patience(x) if current_best < best => *x = config.end.value(),
+            EndCondition::Patience(x) => *x -= 1,
+            EndCondition::GenerationCount(x) => *x -= 1,
+        }
+
         if current_best < best {
             best = current_best;
-            patience_remaining = config.patience;
-        } else {
-            patience_remaining -= 1;
         }
     }
 
@@ -329,7 +355,7 @@ fn main() -> Result<(), String> {
     // println!("matrix[0] = {:?}", matrix[0]);
 
     let cfg = Config {
-        patience: 30,
+        end: EndCondition::GenerationCount(20),
         population_size: 100,
         mutation_chance: 0.7,
         sample_size: 3,
