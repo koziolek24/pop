@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   std::uniform_real_distribution<> prob_dist(0.0, 1.0);
   std::uniform_int_distribution<> taskDist(maxTaskCount / 2, maxTaskCount);
   std::uniform_int_distribution<> groupDist(maxGroupCount / 2, maxGroupCount);
-  std::uniform_int_distribution<> timeDist(maxTime / 2, maxTime);
+  std::uniform_int_distribution<> timeDist(1, maxTime);
 
   int taskCount = taskDist(gen);
   int groupCount = groupDist(gen);

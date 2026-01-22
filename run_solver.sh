@@ -15,11 +15,12 @@ for input_file in $(ls in/in*.txt | sort -V); do
     file_time="out/time${number}.txt"
     file_solve="out/solve${number}.txt"
     temp_output="out/temp${number}.tmp"
-    python3 solver.py < "$input_file" > "$temp_output"
+    uv run python3 solver.py < "$input_file" > "$temp_output"
     sed -n '1p' "$temp_output" > "$file_time"
     exec_time=$(cat "$file_time")
     sed -n '2p' "$temp_output" > "$file_out"
     tail -n +3 "$temp_output" > "$file_solve"
     rm "$temp_output"
+    echo "Przetłumaczony plik $input_file do $file_out"
 done
 

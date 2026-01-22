@@ -47,7 +47,6 @@ def solve_schedule():
     model.Minimize(makespan)
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 30.0
 
     start_time = time.perf_counter()
     status = solver.Solve(model)
